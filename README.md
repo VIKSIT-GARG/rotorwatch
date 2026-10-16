@@ -1,174 +1,263 @@
-# RotorWatch — Drone Parts Assistant
+# RotorWatch
 
-An always-on GCP scraper and database, OpenClaw for WhatsApp + Telegram and retailer browser actions, with a separate web dashboard for Indian drone builders. It tracks Robu.in, ThinkRobotics, Zbotic and Evelta. The web interface can be hosted on Vercel or Render.
+**Track drone and robotics parts, understand what changed, and check the evidence before you buy.**
 
-## Deployment connections and GitHub walkthrough
+RotorWatch is a private sourcing workspace for drone builders, robotics students
+and small project teams in India. It monitors configured retailer pages, stores
+stock and price observations, and brings watchlists, product history, chat and
+messaging alerts into one dashboard.
 
-Read [the complete connection guide](docs/CONNECTIONS_AND_GITHUB.md) for the current
-GCP/Vercel layout, GitHub upload commands, Vercel project settings, credentials,
-update ownership and the unresolved browser preparation issue.
+Instead of treating a saved price as a live quote, RotorWatch shows when it was
+observed. Product questions can trigger fresh checks; unavailable pages and
+uncertain variants remain explicitly unverified.
 
-## Repository snapshot
+[Dashboard](https://rotorwatch-swart.vercel.app) ·
+[Architecture and flowcharts](docs/ARCHITECTURE.md) ·
+[Editable Miro board](https://miro.com/app/board/uXjVEZX2kzM=/) ·
+[Three-minute presentation script](docs/PRESENTATION_3_MINUTES.md)
 
-Curated on 16 October 2026 from the owner's current GCP backend and Cloud Shell
-frontend backups. Backend source is in `src/drone_assistant/`; the shared frontend
-is in `web/`. The frontend application files in both supplied backups matched.
-The standalone frontend's Vercel configuration is retained in `web/vercel.json`.
-See [the snapshot notes](docs/REPOSITORY_SNAPSHOT.md) for provenance and checks.
+The dashboard opens with labelled synthetic data until connected to a private
+backend. Access to the owner's live workspace requires its API token. A hosted
+frontend does not provide a public account or run the monitoring service.
 
-For a GitHub-connected Vercel deployment, set **Root Directory** to **`web`**.
-The Python service, database, scheduler and OpenClaw stay on GCP. Credentials,
-databases, browser sessions and Docker volumes are deliberately not part of this
-repository. Preserve the existing VM `.env` and volumes when deploying updates.
+## What you can do
 
-## Open the interface
+| Task | RotorWatch behavior |
+|---|---|
+| Track a part | Add an exact retailer product URL or a name-based watch rule |
+| Explore products | Filter by retailer, search terms, stock, price and watch state; export CSV |
+| Ask about price or stock | Attempt bounded fresh checks, then show product IDs, links and observation times |
+| Review recent changes | See meaningful recorded events from the last 24 hours; initial checks are excluded |
+| Receive alerts | Queue watched-product changes for configured Telegram and WhatsApp destinations |
+| Query from messaging apps | Use the OpenClaw plugin to call the same backend chat handler |
+| Prepare a purchase | Save a review of an exact product, quantity, variant and page price before explicit Add-to-cart confirmation |
 
-Requires Python 3.11 or newer. From the extracted project:
+**Current limitation:** browser preparation is failing on the owner's VM. The
+review/confirm cart flow exists in code and fixture tests, but a successful live
+retailer cart update has not been verified. Retailer account login and browser
+readiness are prerequisites; no checkout or payment is automated.
+
+## A typical workflow
+
+1. Add a product URL or a name such as `Pixhawk 6X` to your watchlist.
+2. Let the scheduled monitor discover/check configured listings, or request a check.
+3. Inspect the returned retailer, stock state, price and observation history.
+4. Ask a fresh question or review recorded changes; enable the channels you want.
+5. If preparing a cart, choose the exact returned product ID and review the
+   current page details. Confirm only after preparation succeeds.
+
+Example chat requests:
+
+```text
+what is the latest price of Raspberry Pi 5 from thinkrobotics
+is Pixhawk 6X available on any monitored website?
+what changed recently?
+/watch https://thinkrobotics.com/products/raspberry-pi-5?variant=47731530432829
+```
+
+A cart request uses `add to cart P<number> quantity 1`; the returned review may
+then request `confirm cart C<number>`. Product and review numbers come from your
+own database. A chat confirmation must refer to a review prepared in that same
+backend chat session and expires after five minutes.
+
+## How it works
+
+```mermaid
+flowchart TD
+    UI["Dashboard on Vercel"] -->|"HTTPS and workspace token"| TLS["Caddy on GCP"]
+    TLS --> APP["Python API, monitor and notification worker"]
+    APP --> DB[("SQLite observations and history")]
+    APP -->|"Bounded discovery and checks"| R["Configured retailer pages"]
+    APP <-->|"Private gateway connection"| OC["OpenClaw"]
+    OC <-->|"Queries and notifications"| MSG["Telegram and WhatsApp"]
+    OC --> B["Reviewed cart browser: readiness unresolved"]
+    B --> R
+```
+
+One Python `serve` process owns the API, scheduler, ad hoc check queue and
+notification worker. OpenClaw is a separate gateway container. The scraper's
+optional Playwright fallback and OpenClaw's cart browser are separate paths.
+See [all four detailed flows](docs/ARCHITECTURE.md).
+
+### Retailer checks and freshness
+
+The source registry includes **Robu.in, ThinkRobotics, Zbotic and Evelta**, covering
+WooCommerce, Shopify and BigCommerce listings. This is bounded discovery across
+configured sites, not an exhaustive inventory search. Adding another retailer
+requires administrator source configuration and extraction validation.
+
+The monitor tries structured product data and scoped HTML extraction, with
+optional headless rendering and conservative model classification when evidence
+is ambiguous. Exact Shopify variant IDs are preserved. Robots rules, pacing,
+URL/redirect allowlists and request limits apply. Blocks, conflicts and unresolved
+variants remain unknown rather than becoming guessed stock claims.
+
+- The supplied `.env.example` schedules checks every **900 seconds**; scans also
+  take time to complete. The UI polls the API every **five seconds**.
+- Supported price/stock questions attempt fresh checks for up to three existing
+  matches and bounded discovery when needed. Busy or incomplete searches may be
+  queued for background work, with the limitation reported to the user.
+- Prices are stored as integer minor units and retain their own observation
+  time. A saved price is labelled when the latest check did not verify it.
+- Human-facing times use **Asia/Kolkata (IST)**. Database and API times remain UTC.
+- Meaningful changes produce events. Initial observations establish a quiet
+  baseline; an unchanged check timestamp does not create a change alert.
+
+### AI and notifications
+
+Supported shopping requests and commands have deterministic handlers. A small
+OpenAI-compatible model is optional for richer intent interpretation, ambiguous
+page classification and short event wording. Database records supply the product
+facts. Missing keys, provider failures and exhausted call budgets have fallbacks;
+model outputs are not arbitrary SQL or executable browser scripts.
+
+Notifications use a durable SQLite outbox, deduplication keys and retries. In the
+combined setup, OpenClaw owns Telegram and QR-linked WhatsApp. The optional direct
+Meta WhatsApp transport is outbound-only. External network ambiguity means
+exactly-once delivery is not guaranteed.
+
+## Run the local demo
+
+Requires **Python 3.11+**. Clone the repository and run from its root:
 
 ```bash
+git clone https://github.com/VIKSIT-GARG/rotorwatch.git
+cd rotorwatch
 python3 scripts/bootstrap.py
 .venv/bin/python -m drone_assistant serve --demo
 ```
 
-Open **http://127.0.0.1:8000**. On Windows, use `python` for bootstrap and `.venv\Scripts\python.exe` for the second command. The demo uses synthetic data, an in-memory database, and no retailer requests, LLM calls or external messages.
+Open **http://127.0.0.1:8000**. On Windows, use `python` for bootstrap and
+`.venv\Scripts\python.exe` for the second command. Demo mode uses an in-memory
+database and synthetic observations, with no retailer requests, model calls or
+external messages. Bootstrap installs dependencies and requires internet access.
 
-The UI includes:
-
-- Overview with availability counts, recorded history and recent changes.
-- Live watchlist and product explorer: search, retailer/stock/budget filters, watch/unwatch, product observations, retailer links and CSV export.
-- Chat: grounded price/stock checks, reviewed cart requests, recent recorded changes and bounded database queries. A model is optional for supported commands and shopping requests.
-- Alert activity and delivery queue, with channel and change-type preferences.
-- OpenClaw purchase browser: inspect the exact product, review price/variant/quantity, explicitly confirm Add to cart. Checkout/payment stays manual.
-- OpenClaw plugin for inbound WhatsApp and Telegram database queries.
-
-For a portable single-file demo, run `node scripts/build-preview.mjs` and open `dist/rotorwatch-dashboard.html`. Frontend development dependencies are only needed for tests, not to run or deploy the dashboard.
-
-## Architecture
-
-```mermaid
-flowchart TD
-    UI["Web UI · Vercel or Render"] --> API["Authenticated GCP API"]
-    API --> DB["SQLite · catalog, watchlist and history"]
-    API --> CHAT["LLM intent and database answer"]
-    CHAT --> DB
-    SCRAPE["GCP scheduler and headless scraper"] --> DB
-    DB --> EVENTS["Semantic change events"]
-    EVENTS --> SUMMARY["LLM wording plus database facts"]
-    SUMMARY --> OUT["Durable notification outbox"]
-    OUT --> OC["Private OpenClaw Gateway"]
-    OC --> TG["Telegram"]
-    OC --> WA["WhatsApp QR-linked channel"]
-    OC --> BROWSER["Playwright retailer browser"]
-```
-
-One Python `serve` process runs the API, monitoring scheduler and notification worker. In the combined setup a separate OpenClaw Gateway owns both channels and its managed browser. The direct transport retains an optional Python Telegram poller. It remains online 24/7. Retailers are checked at `CHECK_INTERVAL_SECONDS` (the supplied `.env.example` uses 900 seconds). The UI polls the API every five seconds. This is periodic observation, not a direct retailer inventory stream.
-
-Stock, price, extracted details, verification failures and new matching listings produce change events. An unchanged check timestamp alone does not. Initial availability establishes a quiet baseline. Restocks and sold-out changes both appear in the v2 service. Notifications respect watched products and preferences.
-
-Each event is summarized once. The small model selects a short validated introduction; canonical product, stock, price, timestamp and URL facts are then appended from the database. Missing keys, provider errors or exhausted budgets fall back to a deterministic message. Deliveries are deduplicated per event/channel/destination and retried through a leased outbox. Network ambiguity can still produce duplicate external messages; exactly-once delivery across third-party APIs is not guaranteed.
-
-Human-readable observation and chat timestamps use **Asia/Kolkata (IST)**;
-API and database timestamps remain UTC. Recent activity covers meaningful recorded
-changes in the last 24 hours and excludes initial checks. A fresh price/stock
-question attempts a retailer recheck; historical observations are not live stock
-guarantees.
-
-## WhatsApp + Telegram + OpenClaw setup (v0.3)
-
-Use [deploy/OPENCLAW.md](deploy/OPENCLAW.md) for the combined setup. The custom
-plugin was loaded in the actual OpenClaw 2026.10.3 runtime and the generated
-configuration validated. Both channel routes and cart logic are implemented;
-live pairing/delivery and retailer sessions still require your accounts.
+For a portable UI demo:
 
 ```bash
-docker compose -f compose.yaml -f compose.openclaw.yaml up -d --build
+node scripts/build-preview.mjs
 ```
 
-Run the initialization and WhatsApp QR-link commands in that guide **before**
-starting the stack for the first time. The dashboard has **Send test to both**
-and a reviewed browser Add-to-cart flow. No automatic checkout is implemented.
+Open `dist/rotorwatch-dashboard.html`. This view is also synthetic until connected
+to an authenticated backend; a local-file origin may be restricted by browser CORS.
 
-## Run against real retailers
+## Deploy the live system
 
-```bash
-cp .env.example .env
-python3 -c 'import secrets; print(secrets.token_urlsafe(32))'
-```
+| Component | Runtime | Configuration |
+|---|---|---|
+| Dashboard | Vercel static hosting | Deploy repository `web/` directory |
+| API, scheduler and scraper | One GCP VM / `assistant` container | Private VM `.env`, `compose.yaml` |
+| Messaging and retailer browser | `openclaw` container | `compose.openclaw.yaml`, gateway state |
+| HTTPS proxy | `caddy` container | `compose.https.yaml`, `API_DOMAIN` |
+| Persistent state | Docker named volumes | `assistant-data`, `openclaw-state`, Caddy volumes |
+| Source checks | GitHub Actions | Tests and builds; no GCP auto-deployment workflow |
 
-Put the generated secret in `API_TOKEN`; add the desired provider credentials in `.env`. Then run:
+### Vercel: choose the root for the source you upload
 
-```bash
-python3 scripts/bootstrap.py --browser
-.venv/bin/python -m drone_assistant serve
-```
-
-Open the same local URL and use **Connect backend** with `http://127.0.0.1:8000` and the token. Bind remotely only behind HTTPS.
-
-| Backend setting | Purpose |
+| Deployment source | Root Directory |
 |---|---|
-| `API_TOKEN` | Required private workspace secret, at least 24 characters |
-| `CORS_ORIGINS` | Exact frontend origins allowed to connect |
-| `CHECK_INTERVAL_SECONDS` | Minimum 60; 900 gives a 15-minute scan interval |
-| `LLM_API_KEY`, `LLM_BASE_URL`, `LLM_MODEL` | OpenAI-compatible small-model provider |
-| `LLM_DAILY_CALL_LIMIT` | Shared cap for classification, chat and messages |
-| `TELEGRAM_BOT_TOKEN`, `TELEGRAM_ALLOWED_CHAT_IDS` | Optional private Telegram delivery/chat |
-| `NOTIFICATION_TRANSPORT=openclaw` | Both channels through OpenClaw (recommended combined setup) |
-| `OPENCLAW_GATEWAY_TOKEN`, `OPENCLAW_URL` | Private gateway connection; secret stays off the frontend |
-| `WHATSAPP_TO` | Your QR-linked WhatsApp destination |
-| Other `WHATSAPP_*` | Used only by the alternative direct Meta transport |
+| This complete GitHub repository | `web` |
+| A standalone folder already containing `index.html` and `app.js` | `./` |
 
-Create a Telegram bot using BotFather, send it `/start`, and use `python -m drone_assistant telegram-id` after adding its token to find your private chat ID. Only configured private IDs are accepted.
+Use **Other** as the framework, empty build/install command overrides and output
+directory **`.`**. `web/vercel.json` contains the buildless settings and headers.
+Do not apply `web` to a standalone frontend upload: that folder does not exist
+inside it. Connect the intended repository to the existing Vercel project if
+you want Git-triggered deployments while retaining its production domain.
 
-In the default OpenClaw mode WhatsApp uses QR linking, and Telegram uses your bot token. Both support inbound database chat through the RotorWatch plugin. For the alternative `NOTIFICATION_TRANSPORT=direct` mode, WhatsApp requires Meta business/Cloud API setup, an opted-in recipient and an approved template with one text body parameter. Set phone-number ID, destination (international digits only), token, template name/language, and a supported Graph version from your Meta console. Enable WhatsApp in dashboard alert settings after configuration. API acceptance is recorded as `sent`; the direct Meta transport does not ingest delivery/read webhooks or incoming WhatsApp chat.
+### Backend connection and private configuration
 
-## Deploy
+Follow [GCP deployment](deploy/GCP.md) and [OpenClaw setup](deploy/OPENCLAW.md) for a
+new installation. Copy `.env.example` only when creating a new private `.env`;
+preserve the existing file and named volumes during updates. Generate separate
+random workspace and gateway tokens and configure the desired channel accounts.
 
-- **OpenClaw:** [deploy/OPENCLAW.md](deploy/OPENCLAW.md) — both channels, plugin and retailer browser.
-- **GCP:** [deploy/GCP.md](deploy/GCP.md) — Compute Engine, persistent volume, private API token, HTTPS/Caddy, backups and verification.
-- **Frontend:** [deploy/FRONTEND.md](deploy/FRONTEND.md) — Vercel/Render configuration and connecting the UI to the GCP API.
+| Setting | Purpose |
+|---|---|
+| `API_TOKEN` | Private workspace authentication secret, at least 24 characters |
+| `CORS_ORIGINS` | Exact allowed frontend origins, without trailing slashes |
+| `API_DOMAIN` | Hostname pointing at the VM for the Caddy HTTPS overlay |
+| `CHECK_INTERVAL_SECONDS` | Monitoring interval; example is 900 seconds |
+| `LLM_API_KEY`, `LLM_BASE_URL`, `LLM_MODEL` | Optional model provider configuration |
+| `LLM_DAILY_CALL_LIMIT` | Shared cap on model calls |
+| `TELEGRAM_BOT_TOKEN`, `TELEGRAM_ALLOWED_CHAT_IDS` | Bot credentials and private destination allowlist |
+| `WHATSAPP_TO` | Allowed WhatsApp destination for the combined setup |
+| `OPENCLAW_GATEWAY_TOKEN`, `OPENCLAW_URL` | Separate private gateway authentication and origin |
+
+In the dashboard, choose **Connect backend**, enter your HTTPS backend URL and
+workspace `API_TOKEN`. The browser uses `X-RotorWatch-Token`; internal tools may
+use Bearer authentication. The workspace token is held in that browser tab's
+session storage. This is a single-operator workspace, not a multi-user login.
+Provider keys, gateway tokens and account sessions stay on the backend.
+
+The existing owner's HTTPS backend is
+`https://rotorwatch-35-244-35-69.sslip.io`. Other installations should use their own
+hostname and credentials. Vercel preview URLs require their own explicit CORS
+origins if they need backend access.
+
+Initialize the gateway and link the messaging accounts **before** the first
+combined stack start. For an already configured deployment, the stack is:
 
 ```bash
-docker compose -f compose.yaml -f compose.openclaw.yaml up -d --build
+docker compose -f compose.yaml -f compose.openclaw.yaml -f compose.https.yaml up -d --build
 ```
 
-The Python image includes Chromium and runs as a non-root user. SQLite is stored in the `assistant-data` named volume. Port 8000 is bound to VM loopback by default. Use the HTTPS overlay for a hosted frontend. Keep **one process/replica**; do not run the legacy `run` command alongside `serve` against the same database.
+Do not run this merely to publish README changes. Keep the API and gateway ports
+private; public HTTPS goes through Caddy. Detached services continue after SSH
+or Cloud Shell closes while the VM remains running. Git pushes do not update the
+GCP backend automatically. Preserve the Compose project name and volumes on
+releases; `docker compose down -v` deletes persistent data.
 
-## Scraping and database behavior
+## Repository guide
 
-HTTPS URLs/redirects and browser resources are restricted to configured retailer hosts; private/local/metadata addresses are rejected. The fetcher respects robots rules and pacing, bounds response sizes, and retains unknown status on blocks, conflicting evidence and unresolved product variants. No CAPTCHA solving or access-control bypass is included.
+| Path | Responsibility |
+|---|---|
+| `web/` | Static dashboard, browser requests and product views |
+| `src/drone_assistant/api.py`, `service.py` | API, authentication and worker lifecycle |
+| `monitor.py`, `fetching.py`, `extraction.py`, `sources.py` | Retailer discovery, requests and extraction |
+| `storage.py`, `app_store.py` | SQLite catalog, observations, events, reviews and outbox |
+| `shopping.py`, `web_chat.py`, `chat.py` | Product questions and grounded responses |
+| `cart.py`, `openclaw.py` | Reviewed browser actions and private gateway adapter |
+| `integrations/openclaw/` | Channel tools and gateway setup |
+| `deploy/` | GCP, frontend, messaging, shopping and browser guides |
+| `tests/`, `.github/workflows/ci.yml` | Python, frontend and integration checks |
 
-The pipeline tries HTTP/structured data first, then optional headless Chromium, then conservative small-model classification of ambiguous page text. ThinkRobotics Shopify variant IDs are retained. Prices use integer paise. Prefer exact SKU/variant URLs; general listing prices may not represent your chosen variant.
+Python module names in the table are relative to `src/drone_assistant/`.
 
-Seed watches include Pi 5, compatible HAT discovery, Pixhawk 6X and flight controllers. Name watches create bounded lexical discovery rules. Add products through the UI or `/watch <name/URL/P1>`. Add retailers through the administrator source configuration (`SOURCES_FILE`), with fixtures and host validation before enabling them.
+## Verification and project status
 
-SQLite WAL stores products, observations, watches, rules, exclusions, chat, events, preferences, purchase reviews, LLM cache/budget and the outbox. Existing v1/v2 databases migrate automatically; old unsent raw availability alerts are superseded during migration to avoid duplicate v2 summaries. Back up before upgrading. The ad hoc check queue is in memory; periodic checks, data and notification retries survive restarts.
-
-## Commands and backup
+The reviewed source snapshot passed **90 Python tests** with one optional browser
+integration skipped, and **9 JavaScript/DOM tests** in the local environment.
+These tests cover parsing, authentication/CORS, monitoring state, chat, outbox
+behavior and fixture-based cart safeguards. They do not establish live retailer
+coverage, model/provider authentication or a successful retailer cart update.
 
 ```bash
-python -m drone_assistant check --no-discovery
-python -m drone_assistant chat 'find Raspberry Pi 5 in stock under 10000'
-python -m drone_assistant demo
-python -m drone_assistant health
-docker compose exec assistant python -m drone_assistant backup /app/data/backup.sqlite3
-docker cp "$(docker compose ps -q assistant)":/app/data/backup.sqlite3 ./backup.sqlite3
-```
-
-The original `run` command remains a Telegram-only compatibility mode. Use `serve` for the complete web/change-event/WhatsApp system. Restore backups only with the service stopped. `docker compose down` preserves data; `down -v` deletes it.
-
-## Verification and limits
-
-```bash
-.venv/bin/python -m pip install -e '.[dev]'
-.venv/bin/ruff check src tests scripts/bootstrap.py
-.venv/bin/ruff format --check src tests scripts/bootstrap.py
-.venv/bin/pytest -q
+python -m pip install -e '.[dev]'
+ruff check src tests scripts/bootstrap.py
+ruff format --check src tests scripts/bootstrap.py
+pytest -q
 npm ci
 npm run test:web
 ```
 
-API tests cover authentication/CORS, mutations, history, database chat, schema upgrades, semantic events, channel routing, retries and honest purchase states. DOM tests exercise navigation, filters, watch toggles, demo updates, chat and purchase reviews. CI includes Python 3.11–3.13, frontend tests and Docker. See [docs/VERIFICATION.md](docs/VERIFICATION.md) for actual executed checks and [docs/DEMO.md](docs/DEMO.md) for the recording checklist.
+CI includes Python 3.11–3.13, frontend tests, Docker build/demo and a check against
+OpenClaw 2026.10.3. Configured CI jobs are not a claim that the current remote run
+has passed. The owner reported working replies on both messaging channels;
+backend health and CORS checks were observed during setup. Browser preparation
+remains unresolved. See [review notes](docs/PROJECT_REVIEW.md),
+[verification history](docs/VERIFICATION.md) and
+[browser troubleshooting](deploy/BROWSER_TROUBLESHOOTING.md).
 
-This is a single-operator prototype. It has no multi-user login, arbitrary SQL execution, full compatibility engine, guaranteed complete retailer coverage, budget-conditioned watch rules or automatic checkout. OpenClaw channel pairing and retailer cart behavior need live verification on your deployment. Inbound WhatsApp chat is available through OpenClaw; the direct Meta transport is outbound-only. LLM answers can still be imperfect: product cards and observation timestamps provide the underlying evidence. External credentials and deployment configuration are needed for real LLM inference and notifications.
+Current scope excludes multi-user authentication, a full drone-part compatibility
+engine, exhaustive retailer coverage, CAPTCHA bypass, remote desktop login and
+automatic checkout/payment. Prices and availability can change after observation.
 
-Primary references: [FastAPI](https://fastapi.tiangolo.com/), [Telegram](https://core.telegram.org/bots/api), [WhatsApp](https://business.whatsapp.com/developers/developer-hub), [Shopify](https://shopify.dev/docs/api/ajax/reference/product), [Playwright](https://playwright.dev/python/docs/docker), [GCP](https://cloud.google.com/compute/docs/instances/create-start-instance).
+## Further reading
+
+- [Four architecture and user-flow diagrams](docs/ARCHITECTURE.md)
+- [Three-minute presentation script](docs/PRESENTATION_3_MINUTES.md)
+- [Deployment connections and GitHub walkthrough](docs/CONNECTIONS_AND_GITHUB.md)
+- [Frontend deployment](deploy/FRONTEND.md)
+- [Prices and reviewed cart requests](deploy/SHOPPING.md)
+- [Source snapshot provenance](docs/REPOSITORY_SNAPSHOT.md)
