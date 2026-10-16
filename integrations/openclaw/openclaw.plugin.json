@@ -1,0 +1,13 @@
+{
+  "id": "rotorwatch",
+  "name": "RotorWatch",
+  "description": "Database-backed drone-parts queries and purchase browser previews",
+  "categories": ["other"],
+  "contracts": {"tools": ["rotorwatch_query", "rotorwatch_purchase"]},
+  "activation": {"onStartup": true},
+  "configSchema": {
+    "type": "object", "additionalProperties": false,
+    "properties": {"apiUrl": {"type": "string"}},
+    "required": ["apiUrl"]
+  }
+}

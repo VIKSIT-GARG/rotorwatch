@@ -1,0 +1,12 @@
+{
+  "name": "rotorwatch-web",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:web": "node --test tests/web/*.test.js"
+  },
+  "devDependencies": {
+    "linkedom": "^0.18.13"
+  }
+}

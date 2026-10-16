@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#111611">
+  <meta name="description" content="Your drone-parts watchlist, retailer availability, and database-connected AI assistant in one workspace.">
+  <title>RotorWatch — Drone parts, in sight.</title>
+  <link rel="icon" href="./mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <a href="#main" class="skip-link">Skip to content</a>
+  <aside class="sidebar" id="sidebar">
+    <a class="brand" href="#overview" aria-label="RotorWatch home"><img src="./mark.svg" alt="" width="34" height="34"><span>rotor<span class="brand-light">watch</span><small>PARTS INTELLIGENCE</small></span></a>
+    <div class="workspace-label"><span class="workspace-avatar">W</span><div>Your workspace<small>Drone parts monitor</small></div><span class="workspace-dot"></span></div>
+    <div class="nav-label">WORKSPACE</div>
+    <nav aria-label="Main navigation" id="navigation"></nav>
+    <div class="sidebar-bottom"><div class="backend-mini"><span class="tiny-led" id="backend-led"></span><div id="backend-label">Demo workspace<small>Connect your GCP backend</small></div></div><button class="connect-sidebar" data-action="connect">Connection settings <span>↗</span></button><p class="sidebar-foot">Built for the next flight.</p></div>
+  </aside>
+  <div class="app-shell">
+    <header class="topbar"><button class="icon-button mobile-menu" data-action="menu" aria-label="Toggle navigation">☰</button><div class="breadcrumb">Workspace <span>/</span> <strong id="breadcrumb-page">Overview</strong></div><div class="top-actions"><span class="connection-badge demo" id="connection-badge"><i></i>Demo mode</span><button class="icon-button" data-action="alerts" aria-label="Open alerts" id="alerts-button"></button><span class="avatar" title="Private operator workspace">W</span></div></header>
+    <main id="main" tabindex="-1">
+      <div class="demo-notice" id="mode-notice"><span class="notice-icon">◈</span><div><strong>You’re exploring a demo workspace.</strong> Stock, prices and updates are synthetic. Connect GCP to see your own data.</div><button data-action="connect">Connect backend <span>↗</span></button></div>
+      <section id="page-content" aria-live="polite"></section>
+    </main>
+    <footer class="statusbar"><span id="footer-status"><i class="tiny-led demo-led"></i>Demo data · no external notifications</span><span id="last-sync">Local workspace</span></footer>
+  </div>
+  <dialog id="connect-dialog" class="modal"><form id="connect-form"><div class="modal-heading"><div class="eyebrow">YOUR PRIVATE WORKSPACE</div><button type="button" class="icon-button modal-close" data-close="connect-dialog" aria-label="Close connection settings">×</button><h2>Connect to GCP.</h2><p>Your scraper, database and AI stay on your backend. This dashboard connects over its authenticated API.</p></div><label for="api-url">Backend URL</label><input id="api-url" type="url" placeholder="https://api.your-domain.com" required autocomplete="url"><label for="api-token">Workspace API token</label><input id="api-token" type="password" placeholder="Your backend API_TOKEN" required autocomplete="off"><p class="field-note">The token is kept in this browser tab’s session storage. Provider and messaging credentials stay on GCP.</p><div id="connect-error" class="form-error" role="alert"></div><div class="modal-footer"><button type="button" class="button secondary" data-close="connect-dialog">Cancel</button><button type="submit" class="button primary" id="connect-submit">Connect workspace <span>↗</span></button></div></form></dialog>
+  <dialog id="watch-dialog" class="modal"><form id="watch-form"><div class="modal-heading"><div class="eyebrow">KEEP IT ON YOUR RADAR</div><button type="button" class="icon-button modal-close" data-close="watch-dialog" aria-label="Close add watch dialog">×</button><h2>Add to watchlist.</h2><p>Paste an exact product URL or enter a product name to discover matches.</p></div><label for="watch-query">Product URL or name</label><input id="watch-query" placeholder="Raspberry Pi 5 HAT, or https://robu.in/product/…" required maxlength="500"><div class="supported-stores"><span>R Robu</span><span>T ThinkRobotics</span><span>Z Zbotic</span><span>E Evelta</span></div><p class="field-note">Use a variant-specific URL for exact RAM, price and stock. Name watches create discovery rules.</p><div class="form-error" id="watch-error" role="alert"></div><div class="modal-footer"><button type="button" class="button secondary" data-close="watch-dialog">Cancel</button><button type="submit" class="button primary" id="watch-submit">Start watching <span>+</span></button></div></form></dialog>
+  <dialog id="detail-dialog" class="modal wide-modal"><div id="detail-content"></div></dialog>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

@@ -1,0 +1,91 @@
+OFFLINE DEMO — synthetic prices/stock, no live retailer requests, no Telegram messages sent.
+
+1. Baseline monitoring run: {'checked': 3, 'failed': 0, 'discovered': 1, 'listing_errors': 0}
+2. Forced run: restock, preorder opened, new matching HAT: {'checked': 4, 'failed': 0, 'discovered': 1, 'listing_errors': 0}
+
+SIMULATED TELEGRAM ALERTS
+
+BACK IN STOCK
+P1 · Raspberry Pi 5 4GB
+robu · in stock · ₹6,250.00
+ram_gb: 4 | interface: PCIe
+Checked: 2026-10-15T20:53:41+00:00
+https://robu.in/product/demo-raspberry-pi-5-4gb/
+Confirm the exact variant and availability on the retailer page before purchasing.
+
+PRE-ORDER OPENED
+P2 · Holybro Pixhawk 6X Flight Controller
+robu · pre order · price unknown
+processor: STM32H753 | interface: CAN
+Checked: 2026-10-15T20:53:41+00:00
+https://robu.in/product/demo-pixhawk-6x/
+Confirm the exact variant and availability on the retailer page before purchasing.
+
+NEW MATCH AVAILABLE
+P4 · Pi 5 PCIe HAT
+robu · in stock · ₹1,800.00
+interface: PCIe
+Checked: 2026-10-15T20:53:41+00:00
+https://robu.in/product/demo-pi-5-pcie-hat/
+Confirm the exact variant and availability on the retailer page before purchasing.
+
+3. Repeated unchanged run: no duplicate alerts.
+
+USER: find Raspberry Pi 5 in stock under 7000
+BOT: CATALOG RESULTS (up to 10; lowest known price first)
+
+P1 · Raspberry Pi 5 4GB
+robu · in stock · ₹6,250.00
+ram_gb: 4 | interface: PCIe
+Checked: 2026-10-15T20:53:41+00:00
+https://robu.in/product/demo-raspberry-pi-5-4gb/
+
+USER: /compare P1 P2
+BOT: COMPARISON — recorded retailer facts; compatibility is not inferred
+
+P1 · Raspberry Pi 5 4GB
+robu · in stock · ₹6,250.00
+ram_gb: 4 | interface: PCIe
+Checked: 2026-10-15T20:53:41+00:00
+https://robu.in/product/demo-raspberry-pi-5-4gb/
+
+P2 · Holybro Pixhawk 6X Flight Controller
+robu · pre order · price unknown
+processor: STM32H753 | interface: CAN
+Checked: 2026-10-15T20:53:41+00:00
+https://robu.in/product/demo-pixhawk-6x/
+
+USER: /history P1
+BOT: P1 · Raspberry Pi 5 4GB
+LATEST OBSERVATIONS
+2026-10-15T20:53:41+00:00 · in_stock · stock_selector
+  In stock
+2026-10-15T20:53:41+00:00 · in_stock · stock_selector
+  In stock
+2026-10-15T20:53:41+00:00 · out_of_stock · stock_selector
+  Out of stock
+
+USER: /watch https://robu.in/product/demo-raspberry-pi-5-8gb/
+BOT: Watching P5. Alerts follow confirmed favorable changes. Run the monitoring job or start the bot to check the retailer.
+
+USER: /watch flight controller
+BOT: Watching rule R2: flight controller. The first listing pass establishes a baseline; later matching additions and restocks can trigger alerts. Run the monitoring job or start the bot to check the retailer.
+
+USER: /watchlist
+BOT: YOUR WATCHLIST
+P1 · Raspberry Pi 5 4GB · in_stock
+P2 · Holybro Pixhawk 6X Flight Controller · pre_order
+P3 · Pi 5 GPIO HAT · out_of_stock
+P4 · Pi 5 PCIe HAT · in_stock
+P5 · demo raspberry pi 5 8gb · unknown
+
+DISCOVERY RULES
+R1 · Pi 5 HAT
+R2 · flight controller
+
+/unwatch P1 mutes that product, including matching rules. /unwatch R1 stops the rule. Direct product watches remain separate.
+
+USER: /unwatch P1
+BOT: Stopped alerts for P1.
+
+DEMO PASSED: monitoring, three alert types, deduplication, search/filter, comparison, history and watchlist changes.

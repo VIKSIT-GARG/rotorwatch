@@ -1,0 +1,33 @@
+services:
+  assistant:
+    environment:
+      NOTIFICATION_TRANSPORT: openclaw
+      OPENCLAW_URL: http://openclaw:18789
+  openclaw:
+    image: ${OPENCLAW_IMAGE:-ghcr.io/openclaw/openclaw:latest-browser}
+    init: true
+    restart: unless-stopped
+    command: ["node", "dist/index.js", "gateway", "--bind", "lan", "--port", "18789"]
+    environment:
+      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN:?Set a separate OpenClaw gateway token}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_ALLOWED_CHAT_IDS: ${TELEGRAM_ALLOWED_CHAT_IDS:-}
+      WHATSAPP_TO: ${WHATSAPP_TO:-}
+      OPENCLAW_WHATSAPP_SELF_CHAT: ${OPENCLAW_WHATSAPP_SELF_CHAT:-false}
+      LLM_MODEL: ${LLM_MODEL:-openai/gpt-4.1-nano}
+      OPENROUTER_API_KEY: ${LLM_API_KEY:-}
+      ROTORWATCH_API_URL: http://assistant:8000
+      ROTORWATCH_API_TOKEN: ${API_TOKEN:?Set the workspace API token}
+    ports:
+      - "127.0.0.1:18789:18789"
+    volumes:
+      - openclaw-state:/home/node/.openclaw
+      - ./integrations/openclaw:/opt/rotorwatch-plugin:ro
+    shm_size: 1gb
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+volumes:
+  openclaw-state:

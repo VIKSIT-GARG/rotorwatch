@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: rotorwatch-dashboard
+    runtime: static
+    buildCommand: "true"
+    staticPublishPath: ./web
+    headers:
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: no-referrer

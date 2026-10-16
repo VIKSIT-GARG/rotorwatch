@@ -1,0 +1,16 @@
+{
+  "sources": [
+    {"key":"robu","hosts":["robu.in","www.robu.in"],"search_template":"https://robu.in/?s={query}&post_type=product&paged={page}","platform":"woocommerce","product_paths":["/product/"],"stock_selectors":[".summary .stock",".product .summary .availability",".summary .woocommerce-variation-availability"],"main_selectors":[".summary",".product .entry-summary"],"resource_hosts":[]},
+    {"key":"thinkrobotics","hosts":["thinkrobotics.com","www.thinkrobotics.com"],"search_template":"https://thinkrobotics.com/search?q={query}&type=product&page={page}","platform":"shopify","product_paths":["/products/"],"stock_selectors":[".product__info-container .product__inventory",".product__info-container .product-form__submit",".product-single__meta .product-form__cart-submit"],"main_selectors":[".product-main__panel-inner",".product__info-container",".product-single__meta","product-info"],"resource_hosts":["cdn.shopify.com","fonts.shopifycdn.com"]},
+    {"key":"zbotic","hosts":["zbotic.in","www.zbotic.in"],"search_template":"https://zbotic.in/?s={query}&post_type=product&paged={page}","platform":"woocommerce","product_paths":["/product/"],"stock_selectors":[".summary .stock",".summary .woocommerce-variation-availability"],"main_selectors":[".summary",".product .entry-summary"],"resource_hosts":[]},
+    {"key":"evelta","hosts":["evelta.com","www.evelta.com"],"search_template":"https://evelta.com/search.php?search_query={query}&page={page}","platform":"bigcommerce","product_paths":[],"stock_selectors":[".productView-info-value[data-product-stock]",".productView-info-value--stock",".productView .stock-status"],"main_selectors":[".productView-details",".productView"],"resource_hosts":["cdn11.bigcommerce.com","cdn.bigcommerce.com"],"listing_templates":{"companion_computers":"https://evelta.com/raspberry-pi/?page={page}","hats_carrier_boards":"https://evelta.com/raspberry-pi/?page={page}"}}
+  ],
+  "seeds": [
+    {"url":"https://robu.in/product/raspberry-pi-5-model-4gb/","title":"Raspberry Pi 5 Model 4GB"},
+    {"url":"https://thinkrobotics.com/products/raspberry-pi-5?variant=47731530432829","title":"Raspberry Pi 5 4GB"},
+    {"url":"https://evelta.com/raspberry-pi-5-with-2-4-8gb-ram/","title":"Raspberry Pi 5 with 2/4/8GB RAM"},
+    {"url":"https://zbotic.in/product/holybro-pixhawk-6x-standard-set-v2a/","title":"Holybro Pixhawk 6X Standard Set v2A"},
+    {"url":"https://thinkrobotics.com/products/poe-hat-j-for-raspberry-pi-5-cm5-5v-5a-isolated-smps","title":"PoE HAT J for Raspberry Pi 5 / CM5"}
+  ],
+  "seed_queries": ["Raspberry Pi 5","Pixhawk 6X","flight controller","Pi 5 HAT"]
+}

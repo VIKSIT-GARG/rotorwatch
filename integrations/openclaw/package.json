@@ -1,0 +1,8 @@
+{
+  "name": "rotorwatch-openclaw",
+  "version": "0.3.0",
+  "type": "module",
+  "files": ["index.js", "tools.js", "setup.mjs", "openclaw.plugin.json"],
+  "peerDependencies": {"openclaw": ">=2026.10.3 <2026.11.0"},
+  "openclaw": {"extensions": ["./index.js"]}
+}

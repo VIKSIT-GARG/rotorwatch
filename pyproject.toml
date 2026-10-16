@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "drone-parts-assistant"
+version = "0.3.0"
+description = "An always-on drone-parts monitor, private web workspace and messaging assistant"
+requires-python = ">=3.11"
+dependencies = ["httpx[socks]==0.28.1", "beautifulsoup4==4.15.0", "fastapi==0.143.2", "uvicorn==0.54.0"]
+
+[project.optional-dependencies]
+browser = ["playwright==1.56.0"]
+dev = ["pytest>=8,<10", "pytest-asyncio>=0.24,<2", "ruff>=0.9,<1"]
+
+[project.scripts]
+drone-assistant = "drone_assistant.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+drone_assistant = ["data/*.json", "data/demo/*.html"]
+
+[tool.setuptools.data-files]
+"share/drone-assistant/web" = ["web/index.html", "web/app.js", "web/core.js", "web/demo.js", "web/styles.css", "web/mark.svg"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+ignore = ["E501"]
