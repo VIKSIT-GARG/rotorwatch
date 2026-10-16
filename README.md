@@ -13,8 +13,7 @@ uncertain variants remain explicitly unverified.
 
 [Dashboard](https://rotorwatch-swart.vercel.app) ·
 [Architecture and flowcharts](docs/ARCHITECTURE.md) ·
-[Editable Miro board](https://miro.com/app/board/uXjVEZX2kzM=/) ·
-[Three-minute presentation script](docs/PRESENTATION_3_MINUTES.md)
+[Editable Miro board](https://miro.com/app/board/uXjVEZX2kzM=/)
 
 The dashboard opens with labelled synthetic data until connected to a private
 backend. Access to the owner's live workspace requires its API token. A hosted
@@ -62,22 +61,26 @@ backend chat session and expires after five minutes.
 
 ## How it works
 
-```mermaid
-flowchart TD
-    UI["Dashboard on Vercel"] -->|"HTTPS and workspace token"| TLS["Caddy on GCP"]
-    TLS --> APP["Python API, monitor and notification worker"]
-    APP --> DB[("SQLite observations and history")]
-    APP -->|"Bounded discovery and checks"| R["Configured retailer pages"]
-    APP <-->|"Private gateway connection"| OC["OpenClaw"]
-    OC <-->|"Queries and notifications"| MSG["Telegram and WhatsApp"]
-    OC --> B["Reviewed cart browser: readiness unresolved"]
-    B --> R
-```
-
 One Python `serve` process owns the API, scheduler, ad hoc check queue and
 notification worker. OpenClaw is a separate gateway container. The scraper's
 optional Playwright fallback and OpenClaw's cart browser are separate paths.
-See [all four detailed flows](docs/ARCHITECTURE.md).
+See [architecture documentation](docs/ARCHITECTURE.md) and the [editable Miro board](https://miro.com/app/board/uXjVEZX2kzM=/).
+
+### 1. Deployment and component boundaries
+
+![Deployment Architecture](flowchart/deployment%20architecture%20.png)
+
+### 2. Monitoring and change alert lifecycle
+
+![Monitoring and change alerts](flowchart/monitoring-and-cahnge-alert.png)
+
+### 3. Product chat and fresh checks
+
+![Product chat and fresh checks](flowchart/product-caht-fresh-check.png)
+
+### 4. Reviewed Add-to-cart workflow
+
+![Reviewed Add-to-cart](flowchart/reviewed-add-to-cart.png)
 
 ### Retailer checks and freshness
 
@@ -256,8 +259,12 @@ automatic checkout/payment. Prices and availability can change after observation
 ## Further reading
 
 - [Four architecture and user-flow diagrams](docs/ARCHITECTURE.md)
-- [Three-minute presentation script](docs/PRESENTATION_3_MINUTES.md)
 - [Deployment connections and GitHub walkthrough](docs/CONNECTIONS_AND_GITHUB.md)
 - [Frontend deployment](deploy/FRONTEND.md)
-- [Prices and reviewed cart requests](deploy/SHOPPING.md)
-- [Source snapshot provenance](docs/REPOSITORY_SNAPSHOT.md)
+
+## AI coding assistant used
+
+- Chat GPT (web version)
+- Model: sol 6.1
+- Thinking effort: Medium - High
+

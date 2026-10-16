@@ -1,6 +1,5 @@
 # Verification record
 
-For the current curated upload, see [REPOSITORY_SNAPSHOT.md](REPOSITORY_SNAPSHOT.md).
 The sections below are historical implementation records; their pending deployment
 statements do not describe the owner’s later GCP/Vercel setup.
 
